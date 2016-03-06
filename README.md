@@ -17,7 +17,8 @@ By default, it will listen for connections on localhost port 35791. Once a clien
 
 ### Requirements
 
-Java 1.7 or higher
+* Java 1.7 or higher
+* Python for the example client
 
 ### Installation
 
@@ -31,19 +32,24 @@ Update the Makefile if you want a different directory
 ### Running
 
 For transformation of a single file, use
+
     java -jar ~/opt/XTST/XTST.jar -f <xml_file> <xslt_file>
 
 To run as a server, just use
+
     java -jar ~/opt/XTST/XTST.jar <xslt_file>
 
 By default, it will listen on localhost port 35791
 You can specify the hostname/address or port number with -a and -p
+
     java -jar ~/opt/XTST/XTST.jar -a 192.0.2.1 -p 47806 <xslt_file>
 
 There is also a helper wrapper script, which assumes there is an XSLT file in ~/opt/XTST/transform.xsl
+
     ~/opt/XTST/xslt_transformer_service.sh start
 
 send_document.py is a basic script that simply reads a file and sends it to the server.
+
     ~/opt/XTST/send_document.py ~/my_xml_doc.xml
 
 
@@ -54,7 +60,7 @@ its size, sent as a 4-byte signed integer in network order. The string
 is then sent encoded as UTF-8.
 
 Upon connection of a client, the server first sends a message with the protocol version
-    XSLT Transformer server, protocol version: 1
+    XSLT Transformer server version 1.0.0, protocol version: 1
 
 The server then waits for the client to send an xml document (as one message)
     <?xml etc. >
