@@ -60,18 +60,23 @@ its size, sent as a 4-byte signed integer in network order. The string
 is then sent encoded as UTF-8.
 
 Upon connection of a client, the server first sends a message with the protocol version
+
     XSLT Transformer server version 1.0.0, protocol version: 1
 
 The server then waits for the client to send an xml document (as one message)
+
     <?xml etc. >
 
 The server transforms the document. If anything goes wrong during tranformation, it will send back one message
+
     Error: <error message>
+
 And the connection is closed.
 
 If the transformation succeeds, the server sends back two messages:
+
     Success: transformation succeeded
-    <?xml etc >
+    <?xml etc. >
 
 The connection is then closed as well.
 
