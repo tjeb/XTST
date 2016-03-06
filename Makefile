@@ -26,6 +26,9 @@ install-main:
 	cp XTST.jar ${INSTALLDIR}/
 	cp xslt_transformer_service.sh ${INSTALLDIR}/
 	cp send_document.py ${INSTALLDIR}/
+	@if test ! -f ${INSTALLDIR}/transform.xsl; then\
+		cp example.xsl ${INSTALLDIR}/transform.xsl ; \
+	fi
 
 clean:
 	rm -rf build

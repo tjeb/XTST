@@ -44,14 +44,16 @@ You can specify the hostname/address or port number with -a and -p
 
     java -jar ~/opt/XTST/XTST.jar -a 192.0.2.1 -p 47806 <xslt_file>
 
-There is also a helper wrapper script, which assumes there is an XSLT file in ~/opt/XTST/transform.xsl
+There is also a helper wrapper script, which assumes there is an XSLT
+file in ~/opt/XTST/transform.xsl. By default this file will contain a
+very basic transformation that transforms the example.xml in the source
+directory.
 
     ~/opt/XTST/xslt_transformer_service.sh start
 
 send_document.py is a basic script that simply reads a file and sends it to the server.
 
-    ~/opt/XTST/send_document.py ~/my_xml_doc.xml
-
+    ~/opt/XTST/send_document.py example.xml
 
 ### Protocol (version 1)
 
