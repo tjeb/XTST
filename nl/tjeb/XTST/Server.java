@@ -52,6 +52,11 @@ public class Server extends Thread
     private ServerSocket serverSocket;
     XSLTTransformer transformer;
     String xsltFile;
+    long xsltModified;
+    long modifyChecked;
+    // Check at most every half minute
+    long CHECK_EVERY = 30000;
+    
     static String VERSION = "1.0.0";
     static String PROTOCOL_VERSION = "1";
 
@@ -65,7 +70,36 @@ public class Server extends Thread
     public Server(String host, int port, String xsltFileName) throws IOException {
         InetAddress addr = InetAddress.getByName(host);
         serverSocket = new ServerSocket(port, 100, addr);
-        transformer = new XSLTTransformer(xsltFileName);
+        xsltFile = xsltFileName;
+        loadFile();
+        //transformer = new XSLTTransformer(xsltFileName);
+    }
+
+    /**
+     * Load the XSLT file
+     * Remember current time and last modified time of file
+     */
+    private void loadFile() {
+        xsltModified = new File(xsltFile).lastModified();
+        modifyChecked = System.currentTimeMillis();
+        transformer = new XSLTTransformer(xsltFile);
+        System.out.println("Loaded XSLT file " + xsltFile);
+    }
+
+    /**
+     * Check whether the XSLT file has been modified since it was
+     * loaded. If so, reload it. Check at most once every CHECK_EVERY
+     * milliseconds.
+     */
+    private void checkModified() {
+        long now = System.currentTimeMillis();
+        if (now > modifyChecked + CHECK_EVERY) {
+            long modified = new File(xsltFile).lastModified();
+            if (modified > xsltModified) {
+                loadFile();
+            }
+        }
+        modifyChecked = now;
     }
 
     /**
@@ -171,6 +205,8 @@ public class Server extends Thread
         while(true) {
             try {
                 Socket server = serverSocket.accept();
+                checkModified();
+                
                 DataInputStream in =
                       new DataInputStream(server.getInputStream());
                 DataOutputStream out =
