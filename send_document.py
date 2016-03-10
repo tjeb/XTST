@@ -64,7 +64,7 @@ def check_protocol_version(version_string):
               "while I have %d. Aborting"
               % (protocol_version, PROTOCOL_VERSION))
 
-def send_document(filename, host, port):
+def send_document(filename, host, port, outputfile):
     with open(filename) as inf:
         lines = inf.readlines()
         xml = "".join(lines)
@@ -80,7 +80,11 @@ def send_document(filename, host, port):
         status = read_data_string(s)
         if status.startswith("Success:"):
             result = read_data_string(s, True)
-            print(result)
+            if not outputfile:
+                print(result.encode("UTF-8"))
+            else:
+                with open(outputfile, 'w') as outf:
+                    outf.write(result.encode("UTF-8"))
         else:
             print(status)
 
@@ -90,9 +94,11 @@ if __name__ == "__main__":
                             help='hostname or IP address of the server')
     arg_parser.add_argument('-p', '--port', type=int, default=35791,
                             help='port of the server')
+    arg_parser.add_argument('-o', '--outputfile',
+                            help='save returned document to file')
     arg_parser.add_argument('document',
                             help='document to send')
 
     args = arg_parser.parse_args()
 
-    send_document(args.document, args.address, args.port)
+    send_document(args.document, args.address, args.port, args.outputfile)

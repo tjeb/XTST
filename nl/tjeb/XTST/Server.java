@@ -54,8 +54,7 @@ public class Server extends Thread
     String xsltFile;
     long xsltModified;
     long modifyChecked;
-    // Check at most every half minute
-    long CHECK_EVERY = 30000;
+    long checkEveryMilliseconds;
     
     static String VERSION = "1.0.0";
     static String PROTOCOL_VERSION = "1";
@@ -67,12 +66,13 @@ public class Server extends Thread
      * @param port The port number to listen on
      * @param xsltFileName The XSLT file to use in the transformation
      */
-    public Server(String host, int port, String xsltFileName) throws IOException {
+    public Server(String host, int port, String xsltFileName, int checkEverySeconds) throws IOException {
         InetAddress addr = InetAddress.getByName(host);
         serverSocket = new ServerSocket(port, 100, addr);
         xsltFile = xsltFileName;
         loadFile();
         //transformer = new XSLTTransformer(xsltFileName);
+        checkEveryMilliseconds = 1000*checkEverySeconds;
     }
 
     /**
@@ -93,7 +93,7 @@ public class Server extends Thread
      */
     private void checkModified() {
         long now = System.currentTimeMillis();
-        if (now > modifyChecked + CHECK_EVERY) {
+        if (now > modifyChecked + checkEveryMilliseconds) {
             long modified = new File(xsltFile).lastModified();
             if (modified > xsltModified) {
                 loadFile();

@@ -36,12 +36,14 @@ public class CommandLine {
     String host;
     String xmlFile;
     String xsltFile;
+    int checkEverySeconds;
     
     public CommandLine(String[] args) {
         host = "localhost";
         port = 35791;
         xmlFile = null;
         xsltFile = null;
+        checkEverySeconds = 30;
 
         parseArguments(args);
     }
@@ -57,6 +59,9 @@ public class CommandLine {
                 .help("Listen on the given port number (defaults to 35791)");
         parser.addArgument("-f", "--file")
                 .help("Do not start a server but just transform the given xml file");
+        parser.addArgument("-c", "--check")
+                .type(Integer.class)
+                .help("Check the xsl file every X seconds (defaults to 30)");
         parser.addArgument("xslt_file")
                 .help("XSLT file to use for transformations");
         Namespace ns = null;
@@ -72,6 +77,9 @@ public class CommandLine {
             }
             if (ns.get("file") != null) {
                 xmlFile = ns.get("file");
+            }
+            if (ns.get("check") != null) {
+                checkEverySeconds = ((Integer)ns.get("check")).intValue();
             }
             xsltFile = ns.get("xslt_file");
         } catch (ArgumentParserException e) {
@@ -98,7 +106,7 @@ public class CommandLine {
             }
         } else {
             try {
-                Thread t = new Server(host, port, xsltFile);
+                Thread t = new Server(host, port, xsltFile, checkEverySeconds);
                 t.start();
             } catch(IOException e) {
                 e.printStackTrace();
