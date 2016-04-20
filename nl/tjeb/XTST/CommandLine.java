@@ -36,6 +36,7 @@ public class CommandLine {
     String host;
     String xmlFile;
     String xsltFile;
+    String xsdFile;
     int checkEverySeconds;
     
     public CommandLine(String[] args) {
@@ -43,6 +44,7 @@ public class CommandLine {
         port = 35791;
         xmlFile = null;
         xsltFile = null;
+        xsdFile = null;
         checkEverySeconds = 30;
 
         parseArguments(args);
@@ -64,6 +66,7 @@ public class CommandLine {
                 .help("Check the xsl file every X seconds (defaults to 30)");
         parser.addArgument("xslt_file")
                 .help("XSLT file to use for transformations");
+        parser.addArgument("xsd_file").nargs("?").help("XSD schema to validate against");
         Namespace ns = null;
         
         try {
@@ -82,6 +85,7 @@ public class CommandLine {
                 checkEverySeconds = ((Integer)ns.get("check")).intValue();
             }
             xsltFile = ns.get("xslt_file");
+            xsdFile = ns.get("xsd_file");
         } catch (ArgumentParserException e) {
             parser.handleError(e);
             System.exit(1);
@@ -106,9 +110,9 @@ public class CommandLine {
             }
         } else {
             try {
-                Thread t = new Server(host, port, xsltFile, checkEverySeconds);
+                Thread t = new Server(host, port, xsltFile, xsdFile, checkEverySeconds);
                 t.start();
-            } catch(IOException e) {
+            } catch(Exception e) {
                 e.printStackTrace();
                 System.exit(1);
             }

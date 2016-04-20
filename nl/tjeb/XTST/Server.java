@@ -26,6 +26,11 @@ import java.util.ArrayList;
 import java.lang.Character;
 import net.sf.saxon.trans.XPathException;
 import javax.xml.transform.TransformerException;
+import javax.xml.validation.*;
+import javax.xml.XMLConstants;
+import org.xml.sax.SAXException;
+
+import javax.xml.transform.stream.StreamSource;
 
 /**
  * XSLT Transformation Server
@@ -51,10 +56,12 @@ public class Server extends Thread
 {
     private ServerSocket serverSocket;
     XSLTTransformer transformer;
-    String xsltFile;
+    String XSLTFile;
     long xsltModified;
     long modifyChecked;
     long checkEveryMilliseconds;
+    String XSDFile;
+    Validator XSDValidator;
     
     static String VERSION = "1.0.0";
     static String PROTOCOL_VERSION = "1";
@@ -64,14 +71,16 @@ public class Server extends Thread
      *
      * @param hostname The hostname or IP address to listen on
      * @param port The port number to listen on
-     * @param xsltFileName The XSLT file to use in the transformation
+     * @param XSLTFileName The XSLT file to use in the transformation
      */
-    public Server(String host, int port, String xsltFileName, int checkEverySeconds) throws IOException {
+    public Server(String host, int port, String XSLTFileName, String xsdFileName, int checkEverySeconds) throws IOException, SAXException {
         InetAddress addr = InetAddress.getByName(host);
         serverSocket = new ServerSocket(port, 100, addr);
-        xsltFile = xsltFileName;
-        loadFile();
-        //transformer = new XSLTTransformer(xsltFileName);
+        XSLTFile = XSLTFileName;
+        loadXSLT();
+        XSDFile = xsdFileName;
+        loadXSD();
+        //transformer = new XSLTTransformer(XSLTFileName);
         checkEveryMilliseconds = 1000*checkEverySeconds;
     }
 
@@ -79,11 +88,25 @@ public class Server extends Thread
      * Load the XSLT file
      * Remember current time and last modified time of file
      */
-    private void loadFile() {
-        xsltModified = new File(xsltFile).lastModified();
+    private void loadXSLT() {
+        xsltModified = new File(XSLTFile).lastModified();
         modifyChecked = System.currentTimeMillis();
-        transformer = new XSLTTransformer(xsltFile);
-        System.out.println("Loaded XSLT file " + xsltFile);
+        transformer = new XSLTTransformer(XSLTFile);
+        System.out.println("Loaded XSLT file " + XSLTFile);
+    }
+
+    /**
+     * Load an XSD file
+     */
+    private void loadXSD() throws SAXException {
+        if (XSDFile == null) {
+            XSDValidator = null;
+        } else {
+            SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+            Schema schema = schemaFactory.newSchema(new File(XSDFile));
+            XSDValidator = schema.newValidator();
+            System.out.println("Loaded XSD file " + XSDFile);
+        }
     }
 
     /**
@@ -94,9 +117,9 @@ public class Server extends Thread
     private void checkModified() {
         long now = System.currentTimeMillis();
         if (now > modifyChecked + checkEveryMilliseconds) {
-            long modified = new File(xsltFile).lastModified();
+            long modified = new File(XSLTFile).lastModified();
             if (modified > xsltModified) {
-                loadFile();
+                loadXSLT();
             }
         }
         modifyChecked = now;
@@ -221,14 +244,29 @@ public class Server extends Thread
                 
                 try {
                     String xml = readDataString(in);
-                    status = "Success: transformation succeeded\n";
-                    result = transformer.transformString(xml);
+                    // Validate against schema
+                    if (XSDValidator != null) {
+                        try {
+                            StringReader reader = new StringReader(xml);
+                            StreamSource source = new StreamSource(reader);
+                            XSDValidator.validate(source);
+                            result = transformer.transformString(xml);
+                        } catch (SAXException saxe) {
+                            status = "Error invalid " + saxe.toString();
+                            System.out.println("error");
+                        }
+                    } else {
+                        // Transform XSLT
+                        status = "Success: transformation succeeded\n";
+                        result = transformer.transformString(xml);
+                    }
                 } catch (IOException ioe) {
                     status = "Error: " + ioe;
                 } catch (Exception xpe) {
                     status = "Error: " + xpe;
                 }
 
+                System.out.println("Sending status: " + status);
                 sendDataString(status, out);
 
                 if (result != null) {
