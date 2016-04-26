@@ -251,14 +251,15 @@ public class Server extends Thread
                             StreamSource source = new StreamSource(reader);
                             XSDValidator.validate(source);
                             result = transformer.transformString(xml);
+                            status = "Success: transformation succeeded\n";
                         } catch (SAXException saxe) {
                             status = "Error invalid " + saxe.toString();
                             System.out.println("error");
                         }
                     } else {
                         // Transform XSLT
-                        status = "Success: transformation succeeded\n";
                         result = transformer.transformString(xml);
+                        status = "Success: transformation succeeded\n";
                     }
                 } catch (IOException ioe) {
                     status = "Error: " + ioe;
