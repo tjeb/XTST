@@ -253,7 +253,7 @@ public class Server extends Thread
                             result = transformer.transformString(xml);
                             status = "Success: transformation succeeded\n";
                         } catch (SAXException saxe) {
-                            status = "Error invalid " + saxe.toString();
+                            status = "Error: invalid " + saxe.toString();
                             System.out.println("error");
                         }
                     } else {
