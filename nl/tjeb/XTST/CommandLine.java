@@ -26,7 +26,13 @@ import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
+import javax.xml.validation.*;
+import javax.xml.XMLConstants;
+import java.io.*;
+import javax.xml.transform.stream.StreamSource;
+
 import static net.sourceforge.argparse4j.impl.Arguments.storeTrue;
+
 
 /**
  * Command line handler class
@@ -99,15 +105,30 @@ public class CommandLine {
      */
     public void run() {
         if (xmlFile != null) {
-            XSLTTransformer sv = new XSLTTransformer(xsltFile);
             try {
+                if (xsdFile != null) {
+                    SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+                    Schema schema = schemaFactory.newSchema(new File(xsdFile));
+                    Validator XSDValidator = schema.newValidator();
+                    
+                    StreamSource source = new StreamSource(new File(xmlFile));
+                    XSDValidator.validate(source);  
+                }          
+                XSLTTransformer sv = new XSLTTransformer(xsltFile);
+            
                 String result = sv.transformFile(xmlFile);
                 System.out.println(result);
             } catch (TransformerException te) {
                 te.printStackTrace();
-                System.out.println("Transformation failed");
                 System.exit(1);
-            }
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+                System.exit(1);
+            } catch (Exception xpe) {
+                xpe.printStackTrace();
+                System.exit(1);
+                }
+
         } else {
             try {
                 Thread t = new Server(host, port, xsltFile, xsdFile, checkEverySeconds);
