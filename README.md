@@ -37,7 +37,13 @@ For transformation of a single file, use
 
 To run as a server, just use
 
-    java -jar ~/opt/XTST/XTST.jar <xslt_file>
+    java -jar ~/opt/XTST/XTST.jar <xslt_file> [xsd_file]
+
+To run as a server in multimode, use
+
+    java -jar ~/opt/XTST/XTST.jar -m <directory>
+
+See Multimode for more information.
 
 By default, it will listen on localhost port 35791
 You can specify the hostname/address or port number with -a and -p
@@ -55,6 +61,25 @@ send_document.py is a basic script that simply reads a file and sends it to the 
 
     ~/opt/XTST/send_document.py example.xml
 
+When running in multimode, send_document also requires a keyword;
+    ~/opt/XTST/send_document.py -k foo example.xml
+
+### Multimode
+
+When running in multimode, instead of passing an XSLT file, you can
+pass a directory. XTST will traverse the directory structure looking for files called 'xtst.properties'; which should contain the following lines:
+
+    keyword=<keyword>
+    xsl_file=<filename (relative to path of xtst.properties file)>
+    xsd_file=<filename (relative to path of xtst.properties file)>
+
+xsd_file is optional, keyword and xsl_file are mandatory.
+
+XTST will load document handlers for all the xtst.properties files it finds, and will use communication protocol 2, which supports selecting the correct handler.
+
+
+
+
 ### Protocol (version 1)
 
 The procotol is based on (string) messages; each message is prepended by
@@ -63,7 +88,7 @@ is then sent encoded as UTF-8.
 
 Upon connection of a client, the server first sends a message with the protocol version
 
-    XSLT Transformer server version 1.0.0, protocol version: 1
+    XSLT Transformer server version <VERSION>, protocol version: 1
 
 The server then waits for the client to send an xml document (as one message)
 
@@ -81,6 +106,41 @@ If the transformation succeeds, the server sends back two messages:
     <?xml etc. >
 
 The connection is then closed as well.
+
+### Protocol (version 2)
+
+When running in multimode, the protocol will be version 2. This is
+the same as version 1, except the client should first send a keyword,
+with which the server will find the correct transformation to perform.
+
+Full description:
+
+Upon connection of a client, the server first sends a message with the protocol version
+
+    XSLT Transformer server version <VERSION>, protocol version: 2
+
+The server then waits for the client to send a keyword (as one message)
+    keyword_foo_bar
+
+This keyword will be used to find the corresponding document handler, as specified by the keyword in the relevant xtst.properties file.
+
+The server then waits for the client to send an xml document (as one message)
+
+    <?xml etc. >
+
+The server transforms the document. If anything goes wrong during tranformation, it will send back one message
+
+    Error: <error message>
+
+And the connection is closed.
+
+If the transformation succeeds, the server sends back two messages:
+
+    Success: transformation succeeded
+    <?xml etc. >
+
+The connection is then closed as well.
+
 
 ### License
 
