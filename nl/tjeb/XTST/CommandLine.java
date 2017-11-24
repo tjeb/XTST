@@ -35,6 +35,7 @@ public class CommandLine {
     int port;
     String host;
     String xmlFile;
+    boolean multimode;
     String xsltFile;
     String xsdFile;
     int checkEverySeconds;
@@ -43,6 +44,7 @@ public class CommandLine {
         host = "localhost";
         port = 35791;
         xmlFile = null;
+        multimode = false;
         xsltFile = null;
         xsdFile = null;
         checkEverySeconds = 30;
@@ -82,9 +84,12 @@ public class CommandLine {
             ns = parser.parseArgs(argv);
 
             // sanity checks
-            if (ns.getBoolean("multimode") && ns.get("xsd_file") != null) {
-                System.out.println("Cannot run in multimode and specify a single xsd file");
-                System.exit(1);
+            if (ns.getBoolean("multimode")) {
+                multimode = true;
+                if (ns.get("xsd_file") != null) {
+                    System.out.println("Cannot run in multimode and specify a single xsd file");
+                    System.exit(1);
+                }
             }
 
             if (ns.get("address") != null) {
@@ -125,7 +130,13 @@ public class CommandLine {
             }
         } else {
             try {
-                Thread t = new Server(host, port, xsltFile, xsdFile, checkEverySeconds);
+                java.util.Map<String, DocumentHandler> transformers = new java.util.HashMap<String, DocumentHandler>();
+                if (multimode) {
+                } else {
+                    transformers.put("default", new DocumentHandler(xsltFile, xsdFile, checkEverySeconds));
+                }
+
+                Thread t = new Server(host, port, multimode, transformers);
                 t.start();
             } catch(Exception e) {
                 e.printStackTrace();

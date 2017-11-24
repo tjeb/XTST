@@ -18,6 +18,7 @@
  */
 package nl.tjeb.XTST;
 
+import java.util.Map;
 import java.net.*;
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -51,18 +52,28 @@ import javax.xml.transform.stream.StreamSource;
  * or
  * "Error: <error messsage>"
  * Upon success, the transformation result is sent as one string
+ *
+ *
+ * Protocol (version 2, when running in multimode):
+ * Each string is sent as 4 bytes of network order data, followed by
+ * the string (utf-8 encoding)
+ * Upon connect, the server sends a protocol version string
+ * It will then read a string that identifies which transformation to
+ * perform
+ * It will then read an xml document sent by the client (as one string)
+ * The document will then be transformed
+ * It will then send a status string, of the form:
+ * "Success: document transformed"
+ * or
+ * "Error: <error messsage>"
+ * Upon success, the transformation result is sent as one string
  */
 public class Server extends Thread
 {
     private ServerSocket serverSocket;
-    XSLTTransformer transformer;
-    String XSLTFile;
-    long xsltModified;
-    long modifyChecked;
-    long checkEveryMilliseconds;
-    String XSDFile;
-    Validator XSDValidator;
-    
+    Map<String, DocumentHandler> handlers;
+
+    boolean multimode;
     static String VERSION = "1.0.0";
     static String PROTOCOL_VERSION = "1";
 
@@ -72,57 +83,15 @@ public class Server extends Thread
      * @param hostname The hostname or IP address to listen on
      * @param port The port number to listen on
      * @param XSLTFileName The XSLT file to use in the transformation
+     * @param xsdFileName The XSD file to validate against (may be null)
+     * @param checkEverySeconds Check fro reload every X seconds
      */
-    public Server(String host, int port, String XSLTFileName, String xsdFileName, int checkEverySeconds) throws IOException, SAXException {
+    public Server(String host, int port, boolean multimode_on, Map<String, DocumentHandler> handlerList) throws IOException, SAXException {
         InetAddress addr = InetAddress.getByName(host);
         serverSocket = new ServerSocket(port, 100, addr);
-        XSLTFile = XSLTFileName;
-        loadXSLT();
-        XSDFile = xsdFileName;
-        loadXSD();
-        //transformer = new XSLTTransformer(XSLTFileName);
-        checkEveryMilliseconds = 1000*checkEverySeconds;
-    }
-
-    /**
-     * Load the XSLT file
-     * Remember current time and last modified time of file
-     */
-    private void loadXSLT() {
-        xsltModified = new File(XSLTFile).lastModified();
-        modifyChecked = System.currentTimeMillis();
-        transformer = new XSLTTransformer(XSLTFile);
-        System.out.println("Loaded XSLT file " + XSLTFile);
-    }
-
-    /**
-     * Load an XSD file
-     */
-    private void loadXSD() throws SAXException {
-        if (XSDFile == null) {
-            XSDValidator = null;
-        } else {
-            SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-            Schema schema = schemaFactory.newSchema(new File(XSDFile));
-            XSDValidator = schema.newValidator();
-            System.out.println("Loaded XSD file " + XSDFile);
-        }
-    }
-
-    /**
-     * Check whether the XSLT file has been modified since it was
-     * loaded. If so, reload it. Check at most once every CHECK_EVERY
-     * milliseconds.
-     */
-    private void checkModified() {
-        long now = System.currentTimeMillis();
-        if (now > modifyChecked + checkEveryMilliseconds) {
-            long modified = new File(XSLTFile).lastModified();
-            if (modified > xsltModified) {
-                loadXSLT();
-            }
-        }
-        modifyChecked = now;
+        System.out.println("Listening on port: " + port);
+        multimode = multimode_on;
+        handlers = handlerList;
     }
 
     /**
@@ -148,7 +117,7 @@ public class Server extends Thread
      *
      * On the wire the size is sent through 4 bytes, in network order
      * (i.e. big-endian)
-     * 
+     *
      * @param reader The BufferedReader wrapping the client connection
      * @return The size of the next data chunk
      * @throws IOException If there is an error during the read
@@ -165,7 +134,7 @@ public class Server extends Thread
      * Read one string chunk of data
      * First reads the (4-byte) data size, then the data itself
      * The string is read as UTF-8
-     * 
+     *
      * @param in The data stream to read from
      * @return String the string that is read
      * @throws IOException If there is an error during the read
@@ -228,8 +197,7 @@ public class Server extends Thread
         while(true) {
             try {
                 Socket server = serverSocket.accept();
-                checkModified();
-                
+
                 DataInputStream in =
                       new DataInputStream(server.getInputStream());
                 DataOutputStream out =
@@ -241,24 +209,37 @@ public class Server extends Thread
                 sendDataString("XSLT Transformer server version " +
                                VERSION + ", protocol version: " +
                                Server.PROTOCOL_VERSION + "\n", out);
-                
+
                 try {
+                    DocumentHandler handler;
+                    if (multimode) {
+                        String keyword = readDataString(in);
+                        handler = handlers.get(keyword);
+                        if (handler != null) {
+                            handler.checkModified();
+                        } else {
+                            status = "Error: unknown keyword " + keyword;
+                        }
+                    } else {
+                        handler = handlers.get("default");
+                        handler.checkModified();
+                    }
                     String xml = readDataString(in);
                     // Validate against schema
-                    if (XSDValidator != null) {
+                    if (handler != null && handler.hasXSDValidator()) {
                         try {
                             StringReader reader = new StringReader(xml);
                             StreamSource source = new StreamSource(reader);
-                            XSDValidator.validate(source);
-                            result = transformer.transformString(xml);
+                            handler.getXSDValidator().validate(source);
+                            result = handler.getTransformer().transformString(xml);
                             status = "Success: transformation succeeded\n";
                         } catch (SAXException saxe) {
                             status = "Error: invalid " + saxe.toString();
                             System.out.println("error");
                         }
-                    } else {
+                    } else if (handler != null) {
                         // Transform XSLT
-                        result = transformer.transformString(xml);
+                        result = handler.getTransformer().transformString(xml);
                         status = "Success: transformation succeeded\n";
                     }
                 } catch (IOException ioe) {
