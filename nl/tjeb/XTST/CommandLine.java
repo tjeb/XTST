@@ -38,7 +38,7 @@ public class CommandLine {
     String xsltFile;
     String xsdFile;
     int checkEverySeconds;
-    
+
     public CommandLine(String[] args) {
         host = "localhost";
         port = 35791;
@@ -64,13 +64,28 @@ public class CommandLine {
         parser.addArgument("-c", "--check")
                 .type(Integer.class)
                 .help("Check the xsl file every X seconds (defaults to 30)");
-        parser.addArgument("xslt_file")
+        parser.addArgument("xslt_file_or_directory")
                 .help("XSLT file to use for transformations");
         parser.addArgument("xsd_file").nargs("?").help("XSD schema to validate against");
+        parser.addArgument("-m", "--multimode")
+                .action(storeTrue())
+                .help("Run in multimode; read transformations and xsds from a directory tree");
         Namespace ns = null;
-        
+        // for multimode: each subdirectory is considered a transformation
+        // if it contains a file called 'xtst.properties' with the following
+        // values:
+        // keyword
+        // xsl_file
+        // xsd_file (optional)
+
         try {
             ns = parser.parseArgs(argv);
+
+            // sanity checks
+            if (ns.getBoolean("multimode") && ns.get("xsd_file") != null) {
+                System.out.println("Cannot run in multimode and specify a single xsd file");
+                System.exit(1);
+            }
 
             if (ns.get("address") != null) {
                 host = ns.get("address");
@@ -84,7 +99,7 @@ public class CommandLine {
             if (ns.get("check") != null) {
                 checkEverySeconds = ((Integer)ns.get("check")).intValue();
             }
-            xsltFile = ns.get("xslt_file");
+            xsltFile = ns.get("xslt_file_or_directory");
             xsdFile = ns.get("xsd_file");
         } catch (ArgumentParserException e) {
             parser.handleError(e);
@@ -118,7 +133,7 @@ public class CommandLine {
             }
         }
     }
-    
+
     public static void main(String [] args) {
         CommandLine cl = new CommandLine(args);
         cl.run();
