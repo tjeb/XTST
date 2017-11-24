@@ -19,8 +19,14 @@
 package nl.tjeb.XTST;
 
 import java.io.IOException;
+import java.io.File;
+import java.io.InputStream;
+import java.io.FileInputStream;
 import java.lang.Integer;
+import java.util.Map;
+import java.util.Properties;
 import javax.xml.transform.TransformerException;
+import org.xml.sax.SAXException;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
@@ -112,6 +118,61 @@ public class CommandLine {
         }
     }
 
+    private void readXTSTProperties(File propertiesFile, Map handlers) throws IOException, SAXException {
+        System.out.println("Read properties from " + propertiesFile);
+        InputStream in = new FileInputStream(propertiesFile);
+        Properties properties = new Properties();
+        // load a properties file
+        properties.load(in);
+        String keyword = properties.getProperty("keyword");
+        if (keyword == null) {
+            System.out.println("Error: missing keyword property in " + propertiesFile.getAbsoluteFile());
+            System.exit(1);
+        }
+        if (handlers.containsKey(keyword)) {
+            System.out.println("Error: duplicate entries for keyword " + keyword);
+            System.exit(1);
+        }
+
+        String xsltFileRel = properties.getProperty("xsl_file");
+        if (xsltFileRel == null) {
+            System.out.println("Error: missing xsl_file property in " + propertiesFile.getAbsoluteFile());
+            System.exit(1);
+        }
+        File xsltFile = new File(propertiesFile.getParent(), xsltFileRel);
+        String xsdFileString = null;
+        if (properties.getProperty("xsd_file") != null) {
+            File xsdFile = new File(propertiesFile.getParent(), properties.getProperty("xsd_file"));
+            xsdFileString = xsdFile.toString();
+        }
+
+        DocumentHandler handler = new DocumentHandler(xsltFile.toString(), xsdFileString, checkEverySeconds);
+        handlers.put(keyword, handler);
+    }
+
+    private void checkDirectory(File dir, Map handlers) throws IOException, SAXException  {
+        String[] subDirs = dir.list();
+        for(String filename : subDirs){
+            File dirEntry = new File(dir, filename);
+            if ("xtst.properties".equals(dirEntry.getName())) {
+                readXTSTProperties(dirEntry, handlers);
+            }
+
+            if (dirEntry.isDirectory()) {
+                checkDirectory(new File(dir, filename), handlers);
+            }
+        }
+    }
+
+    private void readDirectories(String directory, Map handlers) throws IOException, SAXException {
+        File maindir = new File(directory);
+        if (maindir.isDirectory()) {
+            checkDirectory(maindir, handlers);
+        } else {
+            System.out.println("Error: " + directory + " is not a directory");
+        }
+    }
+
     /**
      * There are two run modes: single file, and server mode
      * Mode depends on whether xmlFile is set, in which case
@@ -130,13 +191,18 @@ public class CommandLine {
             }
         } else {
             try {
-                java.util.Map<String, DocumentHandler> transformers = new java.util.HashMap<String, DocumentHandler>();
+                java.util.Map<String, DocumentHandler> handlers = new java.util.HashMap<String, DocumentHandler>();
                 if (multimode) {
+                    readDirectories(xsltFile, handlers);
+                    if (handlers.size() == 0) {
+                        System.out.println("Error, no directories with xtst.properties found in " + xsltFile);
+                        System.exit(1);
+                    }
                 } else {
-                    transformers.put("default", new DocumentHandler(xsltFile, xsdFile, checkEverySeconds));
+                    handlers.put("default", new DocumentHandler(xsltFile, xsdFile, checkEverySeconds));
                 }
 
-                Thread t = new Server(host, port, multimode, transformers);
+                Thread t = new Server(host, port, multimode, handlers);
                 t.start();
             } catch(Exception e) {
                 e.printStackTrace();

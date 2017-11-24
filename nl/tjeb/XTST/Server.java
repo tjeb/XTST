@@ -74,8 +74,9 @@ public class Server extends Thread
     Map<String, DocumentHandler> handlers;
 
     boolean multimode;
-    static String VERSION = "1.0.0";
+    static String VERSION = "1.1.0";
     static String PROTOCOL_VERSION = "1";
+    static String PROTOCOL_VERSION_MULTIMODE = "2";
 
     /**
      * Initializer
@@ -206,9 +207,15 @@ public class Server extends Thread
                 String status = null;
                 String result = null;
 
-                sendDataString("XSLT Transformer server version " +
-                               VERSION + ", protocol version: " +
-                               Server.PROTOCOL_VERSION + "\n", out);
+                if (!multimode) {
+                    sendDataString("XSLT Transformer server version " +
+                                   VERSION + ", protocol version: " +
+                                   Server.PROTOCOL_VERSION + "\n", out);
+                } else {
+                    sendDataString("XSLT Transformer server version " +
+                                   VERSION + ", protocol version: " +
+                                   Server.PROTOCOL_VERSION_MULTIMODE + "\n", out);
+                }
 
                 try {
                     DocumentHandler handler;
