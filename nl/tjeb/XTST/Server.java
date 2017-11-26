@@ -18,17 +18,11 @@
  */
 package nl.tjeb.XTST;
 
-import java.util.Map;
 import java.net.*;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.lang.Character;
-import net.sf.saxon.trans.XPathException;
 import javax.xml.transform.TransformerException;
-import javax.xml.validation.*;
-import javax.xml.XMLConstants;
 import org.xml.sax.SAXException;
 
 import javax.xml.transform.stream.StreamSource;
@@ -62,14 +56,14 @@ import javax.xml.transform.stream.StreamSource;
  * validate
  * validate <keyword> (when running in multimode, specifying which
  *                     transformation to perform)
- *
+ * reload (reload the handler (directory))
  *
  * After reading the command, it will send a status message to the
  * client, either 'Success: <msg>' or 'Error: <msg>'
- * In case of Error, the server closes the connection
- * In case of success, it will then read an xml document sent by the
- * client (as one string)
- * The document will then be transformed
+ * In case of Error, or for any command other than validate, the server
+ * closes the connection
+ * In case of success of the validate command, it will then read an
+ * xml document sent by the client (as one string)
  * It will then send a status string, of the form:
  * "Success: document transformed"
  * or
@@ -79,7 +73,7 @@ import javax.xml.transform.stream.StreamSource;
 public class Server extends Thread
 {
     private ServerSocket serverSocket;
-    Map<String, DocumentHandler> handlers;
+    DocumentHandlerManager _manager;
 
     boolean multimode;
     static String VERSION = "1.1.0beta";
@@ -94,12 +88,12 @@ public class Server extends Thread
      * @param xsdFileName The XSD file to validate against (may be null)
      * @param checkEverySeconds Check fro reload every X seconds
      */
-    public Server(String host, int port, boolean multimode_on, Map<String, DocumentHandler> handlerList) throws IOException, SAXException {
+    public Server(String host, int port, boolean multimode_on, DocumentHandlerManager manager) throws IOException, SAXException {
         InetAddress addr = InetAddress.getByName(host);
         serverSocket = new ServerSocket(port, 100, addr);
         System.out.println("Listening on port: " + port);
         multimode = multimode_on;
-        handlers = handlerList;
+        _manager = manager;
     }
 
     /**
@@ -261,7 +255,7 @@ public class Server extends Thread
                                 sendDataString(status, out);
                             } else {
                                 String keyword = command.substring(9);
-                                DocumentHandler handler = handlers.get(keyword);
+                                DocumentHandler handler = _manager.getDocumentHandler(keyword);
                                 if (handler == null) {
                                     sendDataString("Error: unknown keyword " + keyword + "\n", out);
                                 } else {
@@ -271,9 +265,12 @@ public class Server extends Thread
                             }
                         } else {
                             sendDataString("Success: send the XML document now", out);
-                            validateDocument(handlers.get("default"), in, out);
+                            validateDocument(_manager.getDocumentHandler("default"), in, out);
                         }
                     // check other commands here
+                    } else if (command.equals("reload")) {
+                        _manager.load();
+                        sendDataString("Success: handler(s) reloaded", out);
                     } else {
                         status = "Error: Unknown command";
                         sendDataString(status, out);

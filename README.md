@@ -119,8 +119,17 @@ Upon connection of a client, the server first sends a message with the protocol 
 
     XSLT Transformer server version <VERSION>, protocol version: 2
 
-The server then waits for the client to send a keyword (as one message)
-    keyword_foo_bar
+The server then waits for the client to send a command
+    <command>
+
+This can be either
+
+1. validate <keyword>
+2. reload
+
+#### The validate command
+
+In multimode, the keyword for validate is required, in single mode it can be left out.
 
 This keyword will be used to find the corresponding document handler, as specified by the keyword in the relevant xtst.properties file.
 
@@ -141,6 +150,14 @@ If the transformation succeeds, the server sends back two messages:
 
 The connection is then closed as well.
 
+#### The reload command
+
+When running in single mode, the server will reload the XSLT and XSD file. In multimode,
+it will re-read the directory tree and load any document handler specification found in xtst.properties files.
+
+If the reload succeeds, the server will send a message "Success: handler(s) reloaded".
+
+If there is a failure reloading, the server will send a message "Error: <failure>". In this case, the old document handler(s) are kept active.
 
 ### License
 

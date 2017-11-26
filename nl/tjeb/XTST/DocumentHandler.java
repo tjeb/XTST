@@ -18,11 +18,7 @@
  */
 package nl.tjeb.XTST;
 
-import java.util.Map;
 import java.io.*;
-import java.lang.Character;
-import net.sf.saxon.trans.XPathException;
-import javax.xml.transform.TransformerException;
 import javax.xml.validation.*;
 import javax.xml.XMLConstants;
 import org.xml.sax.SAXException;

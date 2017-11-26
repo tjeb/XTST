@@ -66,6 +66,16 @@ def check_protocol_version(version_string):
         exit(1)
     return protocol_version
 
+def send_command(command, host, port):
+    s = socket.socket(
+        socket.AF_INET, socket.SOCK_STREAM)
+    s.connect((host, port))
+    version_string = read_data_string(s)
+    protocol_version = check_protocol_version(version_string)
+    send_data_string(s, command)
+    status = read_data_string(s)
+    print(status)
+
 def send_document(filename, host, port, outputfile, keyword):
     with open(filename) as inf:
         lines = inf.readlines()
@@ -106,9 +116,14 @@ if __name__ == "__main__":
                             help='save returned document to file')
     arg_parser.add_argument('-k', '--keyword', type=str,
                             help='use keyword to select handler in multimode')
-    arg_parser.add_argument('document',
+    arg_parser.add_argument('-c', '--command', action='store_true',
+                            help='send an arbitrary command to the server (instead of a document)')
+    arg_parser.add_argument('document_or_command',
                             help='document to send')
 
     args = arg_parser.parse_args()
 
-    send_document(args.document, args.address, args.port, args.outputfile, args.keyword)
+    if args.command:
+        send_command(args.document_or_command, args.address, args.port)
+    else:
+        send_document(args.document_or_command, args.address, args.port, args.outputfile, args.keyword)
