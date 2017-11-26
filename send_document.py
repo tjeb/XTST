@@ -31,7 +31,7 @@ import sys
 # document
 #
 
-MAX_PROTOCOL_VERSION = 2
+PROTOCOL_VERSION = 2
 
 def send_data_string(s, data):
     bts = data.decode("UTF-8")
@@ -59,9 +59,9 @@ def read_data_string(s, decode=True):
 
 def check_protocol_version(version_string):
     protocol_version = int(version_string.split(":")[1])
-    if protocol_version > MAX_PROTOCOL_VERSION:
+    if protocol_version != PROTOCOL_VERSION:
         print(("Remote server has protocol version %d, " +
-              "while I support up to %d. Aborting")
+              "while I use %d. Aborting")
               % (protocol_version, MAX_PROTOCOL_VERSION))
         exit(1)
     return protocol_version
@@ -77,15 +77,15 @@ def send_document(filename, host, port, outputfile, keyword):
 
         version_string = read_data_string(s)
         protocol_version = check_protocol_version(version_string)
-        if protocol_version == 2:
-            if not keyword:
-                print("Error: must use a keyword when connecting to a server in multimode")
-                exit(1)
-            else:
-                send_data_string(s, keyword)
-        send_data_string(s, xml);
-
+        if not keyword:
+            send_data_string(s, "validate")
+        else:
+            send_data_string(s, "validate %s" % keyword)
         status = read_data_string(s)
+        if (status.startswith("Success: ")):
+            send_data_string(s, xml);
+
+            status = read_data_string(s)
         if status.startswith("Success:"):
             result = read_data_string(s, True)
             if not outputfile:

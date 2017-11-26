@@ -54,13 +54,21 @@ import javax.xml.transform.stream.StreamSource;
  * Upon success, the transformation result is sent as one string
  *
  *
- * Protocol (version 2, when running in multimode):
+ * Protocol (version 2):
  * Each string is sent as 4 bytes of network order data, followed by
  * the string (utf-8 encoding)
  * Upon connect, the server sends a protocol version string
- * It will then read a string that identifies which transformation to
- * perform
- * It will then read an xml document sent by the client (as one string)
+ * It will then read a command, which is one of:
+ * validate
+ * validate <keyword> (when running in multimode, specifying which
+ *                     transformation to perform)
+ *
+ *
+ * After reading the command, it will send a status message to the
+ * client, either 'Success: <msg>' or 'Error: <msg>'
+ * In case of Error, the server closes the connection
+ * In case of success, it will then read an xml document sent by the
+ * client (as one string)
  * The document will then be transformed
  * It will then send a status string, of the form:
  * "Success: document transformed"
@@ -74,9 +82,8 @@ public class Server extends Thread
     Map<String, DocumentHandler> handlers;
 
     boolean multimode;
-    static String VERSION = "1.1.0";
-    static String PROTOCOL_VERSION = "1";
-    static String PROTOCOL_VERSION_MULTIMODE = "2";
+    static String VERSION = "1.1.0beta";
+    static String PROTOCOL_VERSION = "2";
 
     /**
      * Initializer
@@ -191,6 +198,38 @@ public class Server extends Thread
         }
     }
 
+    private void validateDocument(DocumentHandler handler, DataInputStream in, DataOutputStream out) throws IOException, TransformerException {
+        String status = null;
+        String result = null;
+
+        handler.checkModified();
+        String xml = readDataString(in);
+        // Validate against schema
+        if (handler != null && handler.hasXSDValidator()) {
+            try {
+                StringReader reader = new StringReader(xml);
+                StreamSource source = new StreamSource(reader);
+                handler.getXSDValidator().validate(source);
+                result = handler.getTransformer().transformString(xml);
+                status = "Success: transformation succeeded\n";
+            } catch (SAXException saxe) {
+                status = "Error: invalid " + saxe.toString();
+                System.out.println("error");
+            }
+        } else if (handler != null) {
+            // Transform XSLT
+            result = handler.getTransformer().transformString(xml);
+            status = "Success: transformation succeeded\n";
+        }
+
+        //System.out.println("Sending status: " + status);
+        sendDataString(status, out);
+
+        if (result != null) {
+            sendDataString(result, out);
+        }
+    }
+
     /**
      * Run the server
      */
@@ -204,62 +243,45 @@ public class Server extends Thread
                 DataOutputStream out =
                      new DataOutputStream(server.getOutputStream());
 
+                String command = null;
                 String status = null;
                 String result = null;
 
-                if (!multimode) {
-                    sendDataString("XSLT Transformer server version " +
-                                   VERSION + ", protocol version: " +
-                                   Server.PROTOCOL_VERSION + "\n", out);
-                } else {
-                    sendDataString("XSLT Transformer server version " +
-                                   VERSION + ", protocol version: " +
-                                   Server.PROTOCOL_VERSION_MULTIMODE + "\n", out);
-                }
+                sendDataString("XSLT Transformer server version " +
+                               VERSION + ", protocol version: " +
+                               Server.PROTOCOL_VERSION + "\n", out);
 
                 try {
-                    DocumentHandler handler;
-                    if (multimode) {
-                        String keyword = readDataString(in);
-                        handler = handlers.get(keyword);
-                        if (handler != null) {
-                            handler.checkModified();
+                    command = readDataString(in);
+
+                    if (command.startsWith("validate")) {
+                        if (multimode) {
+                            if (command.length() <= 9) {
+                                status = "Error: validate needs a keyword when running in multimode";
+                                sendDataString(status, out);
+                            } else {
+                                String keyword = command.substring(9);
+                                DocumentHandler handler = handlers.get(keyword);
+                                if (handler == null) {
+                                    sendDataString("Error: unknown keyword " + keyword + "\n", out);
+                                } else {
+                                    sendDataString("Success: send the XML document now", out);
+                                    validateDocument(handler, in, out);
+                                }
+                            }
                         } else {
-                            status = "Error: unknown keyword " + keyword;
+                            sendDataString("Success: send the XML document now", out);
+                            validateDocument(handlers.get("default"), in, out);
                         }
+                    // check other commands here
                     } else {
-                        handler = handlers.get("default");
-                        handler.checkModified();
-                    }
-                    String xml = readDataString(in);
-                    // Validate against schema
-                    if (handler != null && handler.hasXSDValidator()) {
-                        try {
-                            StringReader reader = new StringReader(xml);
-                            StreamSource source = new StreamSource(reader);
-                            handler.getXSDValidator().validate(source);
-                            result = handler.getTransformer().transformString(xml);
-                            status = "Success: transformation succeeded\n";
-                        } catch (SAXException saxe) {
-                            status = "Error: invalid " + saxe.toString();
-                            System.out.println("error");
-                        }
-                    } else if (handler != null) {
-                        // Transform XSLT
-                        result = handler.getTransformer().transformString(xml);
-                        status = "Success: transformation succeeded\n";
+                        status = "Error: Unknown command";
+                        sendDataString(status, out);
                     }
                 } catch (IOException ioe) {
-                    status = "Error: " + ioe;
+                    sendDataString("Error: " + ioe + "\n", out);
                 } catch (Exception xpe) {
-                    status = "Error: " + xpe;
-                }
-
-                System.out.println("Sending status: " + status);
-                sendDataString(status, out);
-
-                if (result != null) {
-                    sendDataString(result, out);
+                    sendDataString("Error: " + xpe + "\n", out);
                 }
                 server.close();
             } catch (java.net.SocketException se) {
