@@ -152,8 +152,7 @@ public class CommandLine {
                 DocumentHandlerManager manager = new DocumentHandlerManager(multimode, xsltFile, xsdFile, checkEverySeconds);
 
                 if (manager.getDocumentHandlerCount() == 0) {
-                    System.out.println("Error, no directories with xtst.properties found in " + xsltFile);
-                    System.exit(1);
+                    System.out.println("Warning: no directories with xtst.properties found in " + xsltFile);
                 }
 
                 Thread t = new Server(host, port, multimode, manager);

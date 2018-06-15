@@ -65,8 +65,10 @@ public class DocumentHandler {
      * Load an XSD file
      */
     private void loadXSD() throws SAXException {
+        System.out.println("Loading XSD file, if any");
         if (XSDFile == null) {
             XSDValidator = null;
+            System.out.println("No XSD file set");
         } else {
             SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
             Schema schema = schemaFactory.newSchema(new File(XSDFile));

@@ -257,7 +257,12 @@ public class Server extends Thread
                                 String keyword = command.substring(9);
                                 DocumentHandler handler = _manager.getDocumentHandler(keyword);
                                 if (handler == null) {
-                                    sendDataString("Error: unknown keyword " + keyword + "\n", out);
+                                    System.out.println("Request for unknown keyword '" + keyword + "'");
+
+                                    for (String key : _manager._handlers.keySet()) {
+                                        System.out.println("   '" + key + "'");
+                                    }
+                                    sendDataString("Error: unknown keyword '" + keyword + "'\n", out);
                                 } else {
                                     sendDataString("Success: send the XML document now", out);
                                     validateDocument(handler, in, out);
@@ -276,8 +281,10 @@ public class Server extends Thread
                         sendDataString(status, out);
                     }
                 } catch (IOException ioe) {
+                    System.out.println("[XX] XTST Error: " + ioe);
                     sendDataString("Error: " + ioe + "\n", out);
                 } catch (Exception xpe) {
+                    System.out.println("[XX] XTST Error: " + xpe);
                     sendDataString("Error: " + xpe + "\n", out);
                 }
                 server.close();
