@@ -62,7 +62,7 @@ public class XSLTTransformer {
         net.sf.saxon.Configuration saxonConfig = transformFactoryImpl.getConfiguration();
         saxonConfig.setLineNumbering(true);
         saxonConfig.setRecoveryPolicy(Configuration.RECOVER_SILENTLY);
-        saxonConfig.registerExtensionFunction(new LineNumberFunctionDefinition());
+        saxonConfig.registerExtensionFunction(new LineNumbers());
         transformFactoryImpl.setConfiguration(saxonConfig);
 
         try {
