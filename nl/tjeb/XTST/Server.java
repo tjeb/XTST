@@ -25,6 +25,9 @@ import java.nio.ByteOrder;
 import javax.xml.transform.TransformerException;
 import org.xml.sax.SAXException;
 
+import java.util.Map;
+
+
 import javax.xml.transform.stream.StreamSource;
 
 /**
@@ -48,7 +51,7 @@ import javax.xml.transform.stream.StreamSource;
  * Upon success, the transformation result is sent as one string
  *
  *
- * Protocol (version 2):
+ * Protocol (version 3):
  * Each string is sent as 4 bytes of network order data, followed by
  * the string (utf-8 encoding)
  * Upon connect, the server sends a protocol version string
@@ -57,11 +60,12 @@ import javax.xml.transform.stream.StreamSource;
  * validate <keyword> (when running in multimode, specifying which
  *                     transformation to perform)
  * reload (reload the handler (directory))
+ * list-handlers: return an xml element tree containing the currently
+ *                active handlers, see below for the format
  *
  * After reading the command, it will send a status message to the
  * client, either 'Success: <msg>' or 'Error: <msg>'
- * In case of Error, or for any command other than validate, the server
- * closes the connection
+ * In case of Error the server then closes the connection
  * In case of success of the validate command, it will then read an
  * xml document sent by the client (as one string)
  * It will then send a status string, of the form:
@@ -69,6 +73,23 @@ import javax.xml.transform.stream.StreamSource;
  * or
  * "Error: <error messsage>"
  * Upon success, the transformation result is sent as one string
+ *
+ * For all other commands, the server will send back an arbitrary number
+ * of strings, followed by a string containing 'XTSTResponseEnd'
+ *
+ * list-handlers format example:
+ * <XTSTHandlers>
+ *   <Handler>
+ *     <Name>Foo bar</Name>
+ *     <Description>Some description</Description>
+ *     <Keyword>urn:www.example.com:foobar</Keyword>
+ *   </Handler>
+ *   <Handler>
+ *     <Name>Baz</Name>
+ *     <Description>Some other description</Description>
+ *     <Keyword>urn:www.example.com:baz</Keyword>
+ *   </Handler>
+ * </XTSTHandlers>
  */
 public class Server extends Thread
 {
@@ -77,7 +98,7 @@ public class Server extends Thread
 
     boolean multimode;
     static String VERSION = "1.1.0beta";
-    static String PROTOCOL_VERSION = "2";
+    static String PROTOCOL_VERSION = "3";
 
     /**
      * Initializer
@@ -276,6 +297,10 @@ public class Server extends Thread
                     } else if (command.equals("reload")) {
                         _manager.load();
                         sendDataString("Success: handler(s) reloaded", out);
+                        sendDataString("XTSTResponseEnd", out);
+                    } else if (command.equals("list-handlers")) {
+                        sendHandlers(out);
+                        sendDataString("XTSTResponseEnd", out);
                     } else {
                         status = "Error: Unknown command";
                         sendDataString(status, out);
@@ -298,5 +323,22 @@ public class Server extends Thread
                 break;
             }
         }
+    }
+
+    private void sendHandlers(DataOutputStream out) throws IOException {
+        sendDataString("<XTSTHandlers>", out);
+        for (Map.Entry<String, DocumentHandler> entry : _manager.getHandlers().entrySet()) {
+            DocumentHandler handler = entry.getValue();
+            sendDataString("  <Handler>", out);
+            sendDataString("    <Name>" + handler.getName() + "</Name>", out);
+            sendDataString("    <Description>" + handler.getDescription() + "</Description>", out);
+            sendDataString("    <Keyword>" + entry.getKey() + "</Keyword>", out);
+            sendDataString("  </Handler>", out);
+            //result += "  <Name>" + handler.getName() + "</Name>\n";
+            //result += "  <Description>" + handler.getDescription() + "</Description>\n";
+            //result += "  <Keyword>" + entry.getKey() + "</Keyword>\n";
+
+        }
+        sendDataString("</XTSTHandlers>", out);
     }
 }

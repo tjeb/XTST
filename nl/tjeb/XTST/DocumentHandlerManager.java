@@ -84,8 +84,16 @@ class DocumentHandlerManager {
             File xsdFile = new File(propertiesFile.getParent(), properties.getProperty("xsd_file"));
             xsdFileString = xsdFile.toString();
         }
+        String name = "";
+        if (properties.getProperty("name") != null) {
+          name = properties.getProperty("name");
+        }
+        String description = "";
+        if (properties.getProperty("description") != null) {
+          description = properties.getProperty("description");
+        }
         System.out.println("Loading files for keyword '" + keyword +"'");
-        DocumentHandler handler = new DocumentHandler(xsltFile.toString(), xsdFileString, _checkEverySeconds);
+        DocumentHandler handler = new DocumentHandler(xsltFile.toString(), xsdFileString, _checkEverySeconds, name, description);
         handlers.put(keyword, handler);
     }
 
@@ -110,6 +118,10 @@ class DocumentHandlerManager {
         } else {
             System.out.println("Error: " + directory + " is not a directory");
         }
+    }
+
+    public Map<String, DocumentHandler> getHandlers() {
+        return _handlers;
     }
 
 }

@@ -35,6 +35,8 @@ public class DocumentHandler {
     long checkEveryMilliseconds;
     String XSDFile;
     Validator XSDValidator;
+    private String _name;
+    private String _description;
 
     /**
      * Initializer
@@ -44,11 +46,40 @@ public class DocumentHandler {
      * @param checkEverySeconds Check fro reload every X seconds
      */
     public DocumentHandler(String XSLTFileName, String xsdFileName, int checkEverySeconds) throws SAXException {
+        _name = "";
+        _description = "";
         XSLTFile = XSLTFileName;
         loadXSLT();
         XSDFile = xsdFileName;
         loadXSD();
     }
+
+    /**
+     * Initializer with name and description, used in multimode
+     *
+     * @param name A human-readable name for this handler
+     * @param description A description for this handler
+     * @param XSLTFileName The XSLT file to use in the transformation
+     * @param XSDFileName The XSD file to validate against (may be null)
+     * @param checkEverySeconds Check fro reload every X seconds
+     */
+    public DocumentHandler(String XSLTFileName, String xsdFileName, int checkEverySeconds, String name, String description) throws SAXException {
+        _name = name;
+        _description = description;
+        XSLTFile = XSLTFileName;
+        loadXSLT();
+        XSDFile = xsdFileName;
+        loadXSD();
+    }
+
+    public String getName() {
+        return _name;
+    }
+
+    public String getDescription() {
+        return _description;
+    }
+
 
     /**
      * Load the XSLT file
@@ -104,7 +135,4 @@ public class DocumentHandler {
     public XSLTTransformer getTransformer() {
         return transformer;
     }
-
-
-
 }
