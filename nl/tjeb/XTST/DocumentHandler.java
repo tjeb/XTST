@@ -21,6 +21,7 @@ package nl.tjeb.XTST;
 import java.io.*;
 import javax.xml.validation.*;
 import javax.xml.XMLConstants;
+import javax.xml.transform.stream.StreamSource;
 import org.xml.sax.SAXException;
 
 /**
@@ -45,7 +46,7 @@ public class DocumentHandler {
      * @param XSDFileName The XSD file to validate against (may be null)
      * @param checkEverySeconds Check fro reload every X seconds
      */
-    public DocumentHandler(String XSLTFileName, String xsdFileName, int checkEverySeconds) throws SAXException {
+    public DocumentHandler(String XSLTFileName, String xsdFileName, int checkEverySeconds) throws SAXException, FileNotFoundException {
         _name = "";
         _description = "";
         XSLTFile = XSLTFileName;
@@ -63,7 +64,7 @@ public class DocumentHandler {
      * @param XSDFileName The XSD file to validate against (may be null)
      * @param checkEverySeconds Check fro reload every X seconds
      */
-    public DocumentHandler(String XSLTFileName, String xsdFileName, int checkEverySeconds, String name, String description) throws SAXException {
+    public DocumentHandler(String XSLTFileName, String xsdFileName, int checkEverySeconds, String name, String description) throws SAXException, FileNotFoundException {
         _name = name;
         _description = description;
         XSLTFile = XSLTFileName;
@@ -92,17 +93,33 @@ public class DocumentHandler {
         System.out.println("Loaded XSLT file " + XSLTFile);
     }
 
+
+    private StreamSource filenameToSource(String filename) throws FileNotFoundException {
+        File f = new File(filename);
+        InputStream fstream = new FileInputStream(f);
+        StreamSource sstream = new StreamSource(fstream, f.getAbsolutePath());
+        System.out.println("[XX] LOADED STREAMSOURCE AT " + filename);
+        return sstream;
+    }
+
     /**
      * Load an XSD file
      */
-    private void loadXSD() throws SAXException {
+    private void loadXSD() throws SAXException, FileNotFoundException {
         System.out.println("Loading XSD file, if any");
         if (XSDFile == null) {
             XSDValidator = null;
             System.out.println("No XSD file set");
         } else {
+            System.out.println("Loading XSD file: " + XSDFile);
             SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-            Schema schema = schemaFactory.newSchema(new File(XSDFile));
+            StreamSource[] sources = new StreamSource[2];
+            sources[0] = filenameToSource(XSDFile);
+            // TODO: make this configurable. comma-separated option?  is there a way to do multi?
+            // maybe even just load them all?
+            sources[1] = filenameToSource("document_types/SI-UBL-2.0/../xsd_ubl2.1/maindoc/UBL-CreditNote-2.1.xsd");
+            Schema schema = schemaFactory.newSchema(sources);
+            //Schema schema = schemaFactory.newSchema(new File(XSDFile));
             XSDValidator = schema.newValidator();
             System.out.println("Loaded XSD file " + XSDFile);
         }
