@@ -1,5 +1,6 @@
 package nl.tjeb.XTST;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Properties;
@@ -79,10 +80,16 @@ class DocumentHandlerManager {
             System.exit(1);
         }
         File xsltFile = new File(propertiesFile.getParent(), xsltFileRel);
-        String xsdFileString = null;
+        ArrayList<String> xsdFileStrings = new ArrayList<String>();
         if (properties.getProperty("xsd_file") != null) {
             File xsdFile = new File(propertiesFile.getParent(), properties.getProperty("xsd_file"));
-            xsdFileString = xsdFile.toString();
+            xsdFileStrings.add(xsdFile.toString());
+        }
+        for (int i=1; i < 10; i++) {
+          if (properties.getProperty("xsd_file" + i) != null) {
+            File xsdFile = new File(propertiesFile.getParent(), properties.getProperty("xsd_file" + i));
+            xsdFileStrings.add(xsdFile.toString());
+          }
         }
         String name = "";
         if (properties.getProperty("name") != null) {
@@ -93,7 +100,7 @@ class DocumentHandlerManager {
           description = properties.getProperty("description");
         }
         System.out.println("Loading files for keyword '" + keyword +"'");
-        DocumentHandler handler = new DocumentHandler(xsltFile.toString(), xsdFileString, _checkEverySeconds, name, description);
+        DocumentHandler handler = new DocumentHandler(xsltFile.toString(), xsdFileStrings, _checkEverySeconds, name, description);
         handlers.put(keyword, handler);
     }
 
