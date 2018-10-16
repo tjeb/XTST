@@ -3,6 +3,8 @@
 
 ### Description
 
+(tldr; I wrote some Java so you don't have to)
+
 This is a very simple XSLT Transformer that can run as a server.
 
 The idea behind it is that there is very little support for XSLT 2.0 in
@@ -73,10 +75,11 @@ pass a directory. XTST will traverse the directory structure looking for files c
     xsl_file=<filename (relative to path of xtst.properties file)>
     xsd_file=<filename (relative to path of xtst.properties file)>
 
-xsd_file is optional, keyword and xsl_file are mandatory.
+xsd_file is optional, keyword and xsl_file are mandatory. You can also specify multiple xsd files with the keywords xsd_file1= to xsd_file10=.
 
 XTST will load document handlers for all the xtst.properties files it finds, and will use communication protocol 2, which supports selecting the correct handler.
 
+Be warned: at this moment, XTST will fail and exit if the xsl or xsds cannot be parsed, or if a keyword is used twice.
 
 
 
