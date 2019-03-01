@@ -229,7 +229,7 @@ public class Server extends Thread
                 status = "Success: transformation succeeded\n";
             } catch (SAXException saxe) {
                 status = "Error: invalid " + saxe.toString();
-                System.out.println("error");
+                System.out.println(status);
             }
         } else if (handler != null) {
             // Transform XSLT
