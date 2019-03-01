@@ -19,8 +19,10 @@
 package nl.tjeb.XTST;
 
 import java.io.*;
+import java.util.ArrayList;
 import javax.xml.validation.*;
 import javax.xml.XMLConstants;
+import javax.xml.transform.stream.StreamSource;
 import org.xml.sax.SAXException;
 
 /**
@@ -33,8 +35,10 @@ public class DocumentHandler {
     long xsltModified;
     long modifyChecked;
     long checkEveryMilliseconds;
-    String XSDFile;
+    ArrayList<String> XSDFiles;
     Validator XSDValidator;
+    private String _name;
+    private String _description;
 
     /**
      * Initializer
@@ -43,12 +47,61 @@ public class DocumentHandler {
      * @param XSDFileName The XSD file to validate against (may be null)
      * @param checkEverySeconds Check fro reload every X seconds
      */
-    public DocumentHandler(String XSLTFileName, String xsdFileName, int checkEverySeconds) throws SAXException {
+    public DocumentHandler(String XSLTFileName, String xsdFileName, int checkEverySeconds) throws SAXException, FileNotFoundException {
+        _name = "";
+        _description = "";
         XSLTFile = XSLTFileName;
         loadXSLT();
-        XSDFile = xsdFileName;
+        XSDFiles = new ArrayList<String>();
+        XSDFiles.add(xsdFileName);
         loadXSD();
     }
+
+    /**
+     * Initializer with name and description, used in multimode
+     *
+     * @param name A human-readable name for this handler
+     * @param description A description for this handler
+     * @param XSLTFileName The XSLT file to use in the transformation
+     * @param XSDFileName The XSD file to validate against (may be null)
+     * @param checkEverySeconds Check fro reload every X seconds
+     */
+    public DocumentHandler(String XSLTFileName, String xsdFileName, int checkEverySeconds, String name, String description) throws SAXException, FileNotFoundException {
+        _name = name;
+        _description = description;
+        XSLTFile = XSLTFileName;
+        loadXSLT();
+        XSDFiles = new ArrayList<String>();
+        XSDFiles.add(xsdFileName);
+        loadXSD();
+    }
+
+    /**
+     * Initializer with name and description, used in multimode
+     *
+     * @param name A human-readable name for this handler
+     * @param description A description for this handler
+     * @param XSLTFileName The XSLT file to use in the transformation
+     * @param XSDFileName The XSD file to validate against (may be null)
+     * @param checkEverySeconds Check fro reload every X seconds
+     */
+    public DocumentHandler(String XSLTFileName, ArrayList<String> xsdFileNames, int checkEverySeconds, String name, String description) throws SAXException, FileNotFoundException {
+        _name = name;
+        _description = description;
+        XSLTFile = XSLTFileName;
+        loadXSLT();
+        XSDFiles = xsdFileNames;
+        loadXSD();
+    }
+
+    public String getName() {
+        return _name;
+    }
+
+    public String getDescription() {
+        return _description;
+    }
+
 
     /**
      * Load the XSLT file
@@ -61,17 +114,36 @@ public class DocumentHandler {
         System.out.println("Loaded XSLT file " + XSLTFile);
     }
 
+
+    private StreamSource filenameToSource(String filename) throws FileNotFoundException {
+        File f = new File(filename);
+        InputStream fstream = new FileInputStream(f);
+        StreamSource sstream = new StreamSource(fstream, f.getAbsolutePath());
+        System.out.println("[XX] LOADED STREAMSOURCE AT " + filename);
+        return sstream;
+    }
+
     /**
      * Load an XSD file
      */
-    private void loadXSD() throws SAXException {
-        if (XSDFile == null) {
+    private void loadXSD() throws SAXException, FileNotFoundException {
+        System.out.println("Loading XSD file, if any");
+        if (XSDFiles == null) {
             XSDValidator = null;
+            System.out.println("No XSD files set");
         } else {
+            System.out.println("Loading XSD file: " + XSDFiles.toString());
             SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-            Schema schema = schemaFactory.newSchema(new File(XSDFile));
+            ArrayList<StreamSource> streamSources = new ArrayList<StreamSource>();
+            for (String xsdFileName : XSDFiles) {
+              streamSources.add(filenameToSource(xsdFileName));
+            }
+            StreamSource[] sources = new StreamSource[XSDFiles.size()];
+            streamSources.toArray(sources);
+            Schema schema = schemaFactory.newSchema(sources);
+            //Schema schema = schemaFactory.newSchema(new File(XSDFile));
             XSDValidator = schema.newValidator();
-            System.out.println("Loaded XSD file " + XSDFile);
+            System.out.println("Loaded XSD files " + XSDFiles.toString());
         }
     }
 
@@ -102,7 +174,4 @@ public class DocumentHandler {
     public XSLTTransformer getTransformer() {
         return transformer;
     }
-
-
-
 }

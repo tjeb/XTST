@@ -1,5 +1,6 @@
 package nl.tjeb.XTST;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Properties;
@@ -8,7 +9,8 @@ import org.xml.sax.SAXException;
 import java.io.*;
 
 class DocumentHandlerManager {
-    private Map<String, DocumentHandler> _handlers;
+    // todo: make private
+    public Map<String, DocumentHandler> _handlers;
     private boolean _multimode;
     private int _checkEverySeconds;
     private String _baseDirectory;
@@ -30,6 +32,10 @@ class DocumentHandlerManager {
 
     private synchronized void replaceHandlers(Map<String, DocumentHandler> new_handlers) {
         _handlers = new_handlers;
+        System.out.println("[XX] handlers replaced, new keywords:");
+        for (String key : _handlers.keySet()) {
+            System.out.println("   [XX] '" + key + "'");
+        }
     }
 
     public void load() throws IOException, SAXException {
@@ -59,10 +65,12 @@ class DocumentHandlerManager {
         String keyword = properties.getProperty("keyword");
         if (keyword == null) {
             System.out.println("Error: missing keyword property in " + propertiesFile.getAbsoluteFile());
+            // TODO: should not exit
             System.exit(1);
         }
         if (handlers.containsKey(keyword)) {
             System.out.println("Error: duplicate entries for keyword " + keyword);
+            // TODO: should not exit
             System.exit(1);
         }
 
@@ -72,13 +80,27 @@ class DocumentHandlerManager {
             System.exit(1);
         }
         File xsltFile = new File(propertiesFile.getParent(), xsltFileRel);
-        String xsdFileString = null;
+        ArrayList<String> xsdFileStrings = new ArrayList<String>();
         if (properties.getProperty("xsd_file") != null) {
             File xsdFile = new File(propertiesFile.getParent(), properties.getProperty("xsd_file"));
-            xsdFileString = xsdFile.toString();
+            xsdFileStrings.add(xsdFile.toString());
         }
-
-        DocumentHandler handler = new DocumentHandler(xsltFile.toString(), xsdFileString, _checkEverySeconds);
+        for (int i=1; i < 10; i++) {
+          if (properties.getProperty("xsd_file" + i) != null) {
+            File xsdFile = new File(propertiesFile.getParent(), properties.getProperty("xsd_file" + i));
+            xsdFileStrings.add(xsdFile.toString());
+          }
+        }
+        String name = "";
+        if (properties.getProperty("name") != null) {
+          name = properties.getProperty("name");
+        }
+        String description = "";
+        if (properties.getProperty("description") != null) {
+          description = properties.getProperty("description");
+        }
+        System.out.println("Loading files for keyword '" + keyword +"'");
+        DocumentHandler handler = new DocumentHandler(xsltFile.toString(), xsdFileStrings, _checkEverySeconds, name, description);
         handlers.put(keyword, handler);
     }
 
@@ -103,6 +125,10 @@ class DocumentHandlerManager {
         } else {
             System.out.println("Error: " + directory + " is not a directory");
         }
+    }
+
+    public Map<String, DocumentHandler> getHandlers() {
+        return _handlers;
     }
 
 }

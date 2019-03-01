@@ -31,7 +31,7 @@ import sys
 # document
 #
 
-PROTOCOL_VERSION = 2
+PROTOCOL_VERSION = 3
 
 def send_data_string(s, data):
     bts = data.decode("UTF-8")
@@ -62,7 +62,7 @@ def check_protocol_version(version_string):
     if protocol_version != PROTOCOL_VERSION:
         print(("Remote server has protocol version %d, " +
               "while I use %d. Aborting")
-              % (protocol_version, MAX_PROTOCOL_VERSION))
+              % (protocol_version, PROTOCOL_VERSION))
         exit(1)
     return protocol_version
 
@@ -73,8 +73,10 @@ def send_command(command, host, port):
     version_string = read_data_string(s)
     protocol_version = check_protocol_version(version_string)
     send_data_string(s, command)
-    status = read_data_string(s)
-    print(status)
+    response = read_data_string(s)
+    while response != "XTSTResponseEnd":
+      print(response)
+      response = read_data_string(s)
 
 def send_document(filename, host, port, outputfile, keyword):
     with open(filename) as inf:
