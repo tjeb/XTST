@@ -108,6 +108,7 @@ public class DocumentHandler {
      * Remember current time and last modified time of file
      */
     private void loadXSLT() {
+        System.out.println("Loading XSLT file " + XSLTFile);
         xsltModified = new File(XSLTFile).lastModified();
         modifyChecked = System.currentTimeMillis();
         transformer = new XSLTTransformer(XSLTFile);
@@ -118,6 +119,7 @@ public class DocumentHandler {
     private StreamSource filenameToSource(String filename) throws FileNotFoundException {
         File f = new File(filename);
         InputStream fstream = new FileInputStream(f);
+        System.out.println("[XX] LOADING STREAMSOURCE AT " + filename);
         StreamSource sstream = new StreamSource(fstream, f.getAbsolutePath());
         System.out.println("[XX] LOADED STREAMSOURCE AT " + filename);
         return sstream;

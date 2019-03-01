@@ -56,6 +56,14 @@ class DocumentHandlerManager {
         return _handlers.get(keyword);
     }
 
+    private File getFile(String filename, File propertiesFile) {
+        if (filename.startsWith("/")) {
+            return new File(filename);
+        } else {
+            return new File(propertiesFile.getParent(), filename);
+        }
+    }
+
     private void readXTSTProperties(File propertiesFile, Map handlers) throws IOException, SAXException {
         System.out.println("Read properties from " + propertiesFile);
         InputStream in = new FileInputStream(propertiesFile);
@@ -79,15 +87,16 @@ class DocumentHandlerManager {
             System.out.println("Error: missing xsl_file property in " + propertiesFile.getAbsoluteFile());
             System.exit(1);
         }
-        File xsltFile = new File(propertiesFile.getParent(), xsltFileRel);
+        File xsltFile = getFile(xsltFileRel, propertiesFile);
+
         ArrayList<String> xsdFileStrings = new ArrayList<String>();
         if (properties.getProperty("xsd_file") != null) {
-            File xsdFile = new File(propertiesFile.getParent(), properties.getProperty("xsd_file"));
+            File xsdFile = getFile(properties.getProperty("xsd_file"), propertiesFile);
             xsdFileStrings.add(xsdFile.toString());
         }
         for (int i=1; i < 10; i++) {
           if (properties.getProperty("xsd_file" + i) != null) {
-            File xsdFile = new File(propertiesFile.getParent(), properties.getProperty("xsd_file" + i));
+            File xsdFile = getFile(properties.getProperty("xsd_file" + i), propertiesFile);
             xsdFileStrings.add(xsdFile.toString());
           }
         }
