@@ -16,6 +16,15 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with XTST.  If not, see <http://www.gnu.org/licenses/>.
  */
+
+/*
+ * THIS VERSION IS WORK IN PROGRESS
+ * TODO ITEMS:
+ *  - find general way to merge while adhering to xsd
+ *  - add text nodes at the correct location (i.e. if following a moved node, add it after that
+ *  - can we transform directly to new xml document, without passing through String first and parsing that again?
+ *
+ */
 package nl.tjeb.XTST;
 
 import java.io.StringWriter;
@@ -39,6 +48,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 import org.xml.sax.InputSource;
 import javax.xml.parsers.*;
+import javax.xml.transform.OutputKeys;
 
 import net.sf.saxon.Configuration;
 import net.sf.saxon.TransformerFactoryImpl;
@@ -187,46 +197,30 @@ public class XSLTTransformer {
         StreamResult result = new StreamResult(writer);
         TransformerFactory tf = TransformerFactory.newInstance();
         Transformer transformer = tf.newTransformer();
+        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+        transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
         transformer.transform(domSource, result);
         return writer.toString();
     }
 
     private void mergeResults(Document target, Document source) {
         // loop through all the elements in the second source, and add specific ones to the target
-        /*
-        NodeList nodeList = source.getElementsByTagName("*");
-        System.out.println("YOYO: ELELEMENTS: " + nodeList.getLength());
-        for (int i=0; i < nodeList.getLength(); i++) {
-            Node node = nodeList.item(i);
-            System.out.println("YOYO: " + node.getNodeName());
-        }
-        */
         Node root = source.getFirstChild();
         Node targetRoot = target.getFirstChild();
         Node cur = root.getFirstChild();
         while (cur != null) {
-            System.out.println("YOYO: " + cur.getNodeName());
-            if (hasNode(target, cur)) {
-                System.out.println("YOYO HAS NODE ALREADY: " + cur.getNodeName());
+            Node copy = cur.cloneNode(true);
+            target.adoptNode(copy);
+            // Always add at the end, except for one currently hardcoded
+            // exception: add svrl:ns-prefix-in-attribute-values at
+            // the start instead of at the end
+            if (copy.getNodeName() == "svrl:ns-prefix-in-attribute-values") {
+                targetRoot.insertBefore(copy, targetRoot.getFirstChild());
             } else {
-                Node copy = cur.cloneNode(true);
-                target.adoptNode(copy);
                 targetRoot.appendChild(copy);
-                System.out.println("YOYO NO HAVE NODE: " + cur.getNodeName());
             }
+            System.out.println("YOYO NO HAVE NODE: " + cur.getNodeName());
             cur = cur.getNextSibling();
-
         }
-    }
-
-    private boolean hasNode(Document doc, Node node) {
-        NodeList nodeList = doc.getElementsByTagName(node.getNodeName());
-        for (int i=0; i < nodeList.getLength(); i++) {
-            Node cur = nodeList.item(i);
-            if (cur.isEqualNode(node)) {
-                return true;
-            }
-        }
-        return false;
     }
 }
