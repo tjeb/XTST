@@ -27,6 +27,7 @@ import net.sourceforge.argparse4j.inf.Namespace;
 import javax.xml.validation.*;
 import javax.xml.XMLConstants;
 import java.io.*;
+import java.util.ArrayList;
 import javax.xml.transform.stream.StreamSource;
 
 import static net.sourceforge.argparse4j.impl.Arguments.storeTrue;
@@ -132,7 +133,9 @@ public class CommandLine {
                     StreamSource source = new StreamSource(new File(xmlFile));
                     XSDValidator.validate(source);
                 }
-                XSLTTransformer sv = new XSLTTransformer(xsltFile);
+                ArrayList<String> xsltFiles = new ArrayList<String>();
+                xsltFiles.add(xsltFile);
+                XSLTTransformer sv = new XSLTTransformer(xsltFiles);
 
                 String result = sv.transformFile(xmlFile);
                 System.out.println(result);

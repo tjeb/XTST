@@ -230,11 +230,21 @@ public class Server extends Thread
             } catch (SAXException saxe) {
                 status = "Error: invalid " + saxe.toString();
                 System.out.println(status);
+            } catch (Exception exc) {
+                status = "Error processing document: " + exc.toString();
+                System.out.println(status);
+                exc.printStackTrace();
             }
         } else if (handler != null) {
             // Transform XSLT
-            result = handler.getTransformer().transformString(xml);
-            status = "Success: transformation succeeded\n";
+            try {
+                result = handler.getTransformer().transformString(xml);
+                status = "Success: transformation succeeded\n";
+            } catch (Exception exc) {
+                status = "Error processing document: " + exc.toString();
+                System.out.println(status);
+                exc.printStackTrace();
+            }
         }
 
         //System.out.println("Sending status: " + status);

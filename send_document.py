@@ -101,7 +101,7 @@ def send_document(filename, host, port, outputfile, keyword):
         if status.startswith("Success:"):
             result = read_data_string(s, True)
             if not outputfile:
-                print(result.encode("UTF-8"))
+                print(result)
             else:
                 with open(outputfile, 'w') as outf:
                     outf.write(result.encode("UTF-8"))

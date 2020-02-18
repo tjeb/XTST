@@ -82,13 +82,25 @@ class DocumentHandlerManager {
             System.exit(1);
         }
 
+        ArrayList<String> xslFileStrings = new ArrayList<String>();
+        if (properties.getProperty("xsl_file") != null) {
+            File xslFile = getFile(properties.getProperty("xsl_file"), propertiesFile);
+            xslFileStrings.add(xslFile.toString());
+        }
+        for (int i=1; i < 10; i++) {
+          if (properties.getProperty("xsl_file" + i) != null) {
+            File xslFile = getFile(properties.getProperty("xsl_file" + i), propertiesFile);
+            xslFileStrings.add(xslFile.toString());
+          }
+        }
+/*
         String xsltFileRel = properties.getProperty("xsl_file");
         if (xsltFileRel == null) {
             System.out.println("Error: missing xsl_file property in " + propertiesFile.getAbsoluteFile());
             System.exit(1);
         }
         File xsltFile = getFile(xsltFileRel, propertiesFile);
-
+*/
         ArrayList<String> xsdFileStrings = new ArrayList<String>();
         if (properties.getProperty("xsd_file") != null) {
             File xsdFile = getFile(properties.getProperty("xsd_file"), propertiesFile);
@@ -109,7 +121,8 @@ class DocumentHandlerManager {
           description = properties.getProperty("description");
         }
         System.out.println("Loading files for keyword '" + keyword +"'");
-        DocumentHandler handler = new DocumentHandler(xsltFile.toString(), xsdFileStrings, _checkEverySeconds, name, description);
+        //DocumentHandler handler = new DocumentHandler(xsltFile.toString(), xsdFileStrings, _checkEverySeconds, name, description);
+        DocumentHandler handler = new DocumentHandler(xslFileStrings, xsdFileStrings, _checkEverySeconds, name, description);
         handlers.put(keyword, handler);
     }
 

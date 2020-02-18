@@ -31,7 +31,7 @@ import org.xml.sax.SAXException;
 
 public class DocumentHandler {
     XSLTTransformer transformer;
-    String XSLTFile;
+    ArrayList<String> XSLTFiles;
     long xsltModified;
     long modifyChecked;
     long checkEveryMilliseconds;
@@ -50,7 +50,8 @@ public class DocumentHandler {
     public DocumentHandler(String XSLTFileName, String xsdFileName, int checkEverySeconds) throws SAXException, FileNotFoundException {
         _name = "";
         _description = "";
-        XSLTFile = XSLTFileName;
+        XSLTFiles = new ArrayList<String>();
+        XSLTFiles.add(XSLTFileName);
         loadXSLT();
         XSDFiles = new ArrayList<String>();
         XSDFiles.add(xsdFileName);
@@ -69,7 +70,8 @@ public class DocumentHandler {
     public DocumentHandler(String XSLTFileName, String xsdFileName, int checkEverySeconds, String name, String description) throws SAXException, FileNotFoundException {
         _name = name;
         _description = description;
-        XSLTFile = XSLTFileName;
+        XSLTFiles = new ArrayList<String>();
+        XSLTFiles.add(XSLTFileName);
         loadXSLT();
         XSDFiles = new ArrayList<String>();
         XSDFiles.add(xsdFileName);
@@ -88,11 +90,22 @@ public class DocumentHandler {
     public DocumentHandler(String XSLTFileName, ArrayList<String> xsdFileNames, int checkEverySeconds, String name, String description) throws SAXException, FileNotFoundException {
         _name = name;
         _description = description;
-        XSLTFile = XSLTFileName;
+        XSLTFiles = new ArrayList<String>();
+        XSLTFiles.add(XSLTFileName);
         loadXSLT();
         XSDFiles = xsdFileNames;
         loadXSD();
     }
+
+    public DocumentHandler(ArrayList<String> xslFileNames, ArrayList<String> xsdFileNames, int checkEverySeconds, String name, String description) throws SAXException, FileNotFoundException {
+        _name = name;
+        _description = description;
+        XSLTFiles = xslFileNames;
+        loadXSLT();
+        XSDFiles = xsdFileNames;
+        loadXSD();
+    }
+
 
     public String getName() {
         return _name;
@@ -108,11 +121,14 @@ public class DocumentHandler {
      * Remember current time and last modified time of file
      */
     private void loadXSLT() {
-        System.out.println("Loading XSLT file " + XSLTFile);
-        xsltModified = new File(XSLTFile).lastModified();
-        modifyChecked = System.currentTimeMillis();
-        transformer = new XSLTTransformer(XSLTFile);
-        System.out.println("Loaded XSLT file " + XSLTFile);
+        // todo: we only check for the last modified time of the last file right now
+        for (String fname : XSLTFiles) {
+            System.out.println("Loading XSLT file " + fname);
+            xsltModified = new File(fname).lastModified();
+            modifyChecked = System.currentTimeMillis();
+        }
+        transformer = new XSLTTransformer(XSLTFiles);
+        System.out.println("Loaded XSLT files");
     }
 
 
@@ -153,15 +169,18 @@ public class DocumentHandler {
      * Check whether the XSLT file has been modified since it was
      * loaded. If so, reload it. Check at most once every CHECK_EVERY
      * milliseconds.
+     * TODO: CURRENTLY DISABLED
      */
     public void checkModified() {
         long now = System.currentTimeMillis();
+/*
         if (now > modifyChecked + checkEveryMilliseconds) {
             long modified = new File(XSLTFile).lastModified();
             if (modified > xsltModified) {
                 loadXSLT();
             }
         }
+*/
         modifyChecked = now;
     }
 
