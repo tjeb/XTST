@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #  Copyright (c) 2016 Jelte Jansen
 #
@@ -34,7 +34,7 @@ import sys
 PROTOCOL_VERSION = 3
 
 def send_data_string(s, data):
-    bts = data.decode("UTF-8")
+    bts = data.encode("UTF-8")
     l_bts = struct.pack(">I", len(bts))
     s.send(l_bts)
     s.send(bts)
