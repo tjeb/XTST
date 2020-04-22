@@ -217,6 +217,7 @@ public class Server extends Thread
         String status = null;
         String result = null;
 
+        System.out.println("[XX] validateDocument called");
         handler.checkModified();
         String xml = readDataString(in);
         // Validate against schema
@@ -262,6 +263,7 @@ public class Server extends Thread
         while(true) {
             try {
                 Socket server = serverSocket.accept();
+                System.err.println("[XX] accept");
 
                 DataInputStream in =
                       new DataInputStream(server.getInputStream());

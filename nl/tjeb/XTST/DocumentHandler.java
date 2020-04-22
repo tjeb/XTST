@@ -20,6 +20,8 @@ package nl.tjeb.XTST;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import javax.xml.validation.*;
 import javax.xml.XMLConstants;
 import javax.xml.transform.stream.StreamSource;
@@ -31,11 +33,17 @@ import org.xml.sax.SAXException;
 
 public class DocumentHandler {
     XSLTTransformer transformer;
-    ArrayList<String> XSLTFiles;
+    // We keep track of the loaded files, and their last modified time
+    // To our 'list' of files is a LinkedHashmap with the file path as
+    // keys, and the mtime as values
+    // (LinkedHashMap to preserve order, just in case)
+    LinkedHashMap<String, Long> XSLTFiles;
+    //ArrayList<String> XSLTFiles;
     long xsltModified;
     long modifyChecked;
-    long checkEveryMilliseconds;
-    ArrayList<String> XSDFiles;
+    // By default, check every 5 seconds
+    long checkEveryMilliseconds = 5000;
+    LinkedHashMap<String, Long> XSDFiles;
     Validator XSDValidator;
     private String _name;
     private String _description;
@@ -50,11 +58,11 @@ public class DocumentHandler {
     public DocumentHandler(String XSLTFileName, String xsdFileName, int checkEverySeconds) throws SAXException, FileNotFoundException {
         _name = "";
         _description = "";
-        XSLTFiles = new ArrayList<String>();
-        XSLTFiles.add(XSLTFileName);
+        XSLTFiles = new LinkedHashMap<String, Long>();
+        XSLTFiles.put(XSLTFileName, new Long(0));
         loadXSLT();
-        XSDFiles = new ArrayList<String>();
-        XSDFiles.add(xsdFileName);
+        XSDFiles = new LinkedHashMap<String, Long>();
+        XSDFiles.put(xsdFileName, new Long(0));
         loadXSD();
     }
 
@@ -70,11 +78,11 @@ public class DocumentHandler {
     public DocumentHandler(String XSLTFileName, String xsdFileName, int checkEverySeconds, String name, String description) throws SAXException, FileNotFoundException {
         _name = name;
         _description = description;
-        XSLTFiles = new ArrayList<String>();
-        XSLTFiles.add(XSLTFileName);
+        XSLTFiles = new LinkedHashMap<String, Long>();
+        XSLTFiles.put(XSLTFileName, new Long(0));
         loadXSLT();
-        XSDFiles = new ArrayList<String>();
-        XSDFiles.add(xsdFileName);
+        XSDFiles = new LinkedHashMap<String, Long>();
+        XSDFiles.put(xsdFileName, new Long(0));
         loadXSD();
     }
 
@@ -90,19 +98,28 @@ public class DocumentHandler {
     public DocumentHandler(String XSLTFileName, ArrayList<String> xsdFileNames, int checkEverySeconds, String name, String description) throws SAXException, FileNotFoundException {
         _name = name;
         _description = description;
-        XSLTFiles = new ArrayList<String>();
-        XSLTFiles.add(XSLTFileName);
+        XSLTFiles = new LinkedHashMap<String, Long>();
+        XSLTFiles.put(XSLTFileName, new Long(0));
         loadXSLT();
-        XSDFiles = xsdFileNames;
+        XSDFiles = new LinkedHashMap<String, Long>();
+        for (String fileName : xsdFileNames) {
+            XSDFiles.put(fileName, new Long(0));
+        }
         loadXSD();
     }
 
     public DocumentHandler(ArrayList<String> xslFileNames, ArrayList<String> xsdFileNames, int checkEverySeconds, String name, String description) throws SAXException, FileNotFoundException {
         _name = name;
         _description = description;
-        XSLTFiles = xslFileNames;
+        XSLTFiles = new LinkedHashMap<String, Long>();
+        for (String fileName : xslFileNames) {
+            XSLTFiles.put(fileName, new Long(0));
+        }
         loadXSLT();
-        XSDFiles = xsdFileNames;
+        XSDFiles = new LinkedHashMap<String, Long>();
+        for (String fileName : xsdFileNames) {
+            XSDFiles.put(fileName, new Long(0));
+        }
         loadXSD();
     }
 
@@ -122,12 +139,13 @@ public class DocumentHandler {
      */
     private void loadXSLT() {
         // todo: we only check for the last modified time of the last file right now
-        for (String fname : XSLTFiles) {
+        for (String fname : XSLTFiles.keySet()) {
             System.out.println("Loading XSLT file " + fname);
             xsltModified = new File(fname).lastModified();
             modifyChecked = System.currentTimeMillis();
+            XSLTFiles.put(fname, new Long(xsltModified));
         }
-        transformer = new XSLTTransformer(XSLTFiles);
+        transformer = new XSLTTransformer(XSLTFiles.keySet());
         System.out.println("Loaded XSLT files");
     }
 
@@ -144,24 +162,32 @@ public class DocumentHandler {
     /**
      * Load an XSD file
      */
-    private void loadXSD() throws SAXException, FileNotFoundException {
-        System.out.println("Loading XSD file, if any");
-        if (XSDFiles == null) {
-            XSDValidator = null;
-            System.out.println("No XSD files set");
-        } else {
-            System.out.println("Loading XSD file: " + XSDFiles.toString());
-            SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-            ArrayList<StreamSource> streamSources = new ArrayList<StreamSource>();
-            for (String xsdFileName : XSDFiles) {
-              streamSources.add(filenameToSource(xsdFileName));
+    private void loadXSD() {
+        try {
+            System.out.println("Loading XSD file, if any");
+            if (XSDFiles == null) {
+                XSDValidator = null;
+                System.out.println("No XSD files set");
+            } else {
+                System.out.println("Loading XSD file: " + XSDFiles.toString());
+                SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+                ArrayList<StreamSource> streamSources = new ArrayList<StreamSource>();
+                for (String xsdFileName : XSDFiles.keySet()) {
+                  streamSources.add(filenameToSource(xsdFileName));
+                  long xsdModified = new File(xsdFileName).lastModified();
+                  XSDFiles.put(xsdFileName, new Long(xsdModified));
+                }
+                StreamSource[] sources = new StreamSource[XSDFiles.size()];
+                streamSources.toArray(sources);
+                Schema schema = schemaFactory.newSchema(sources);
+                //Schema schema = schemaFactory.newSchema(new File(XSDFile));
+                XSDValidator = schema.newValidator();
+                System.out.println("Loaded XSD files " + XSDFiles.toString());
             }
-            StreamSource[] sources = new StreamSource[XSDFiles.size()];
-            streamSources.toArray(sources);
-            Schema schema = schemaFactory.newSchema(sources);
-            //Schema schema = schemaFactory.newSchema(new File(XSDFile));
-            XSDValidator = schema.newValidator();
-            System.out.println("Loaded XSD files " + XSDFiles.toString());
+        } catch (FileNotFoundException fxfe) {
+            System.out.println("Error reading XSD File: " + fxfe);
+        } catch (SAXException saxe) {
+            System.out.println("Error reading XSD File: " + saxe);
         }
     }
 
@@ -172,16 +198,28 @@ public class DocumentHandler {
      * TODO: CURRENTLY DISABLED
      */
     public void checkModified() {
+        System.out.println("[XX] checkModified called");
+        // Don't check *every* time; check at most once every 5 seconds
         long now = System.currentTimeMillis();
-/*
         if (now > modifyChecked + checkEveryMilliseconds) {
-            long modified = new File(XSLTFile).lastModified();
-            if (modified > xsltModified) {
-                loadXSLT();
+            for (Map.Entry<String, Long> entry : XSLTFiles.entrySet()) {
+                long modified = new File(entry.getKey()).lastModified();
+                if (modified > entry.getValue()) {
+                    // just reload all XSLT files
+                    loadXSLT();
+                    return;
+                }
             }
+            for (Map.Entry<String, Long> entry : XSDFiles.entrySet()) {
+                long modified = new File(entry.getKey()).lastModified();
+                if (modified > entry.getValue()) {
+                    // just reload all XSLT files
+                    loadXSD();
+                    return;
+                }
+            }
+            modifyChecked = now;
         }
-*/
-        modifyChecked = now;
     }
 
     public boolean hasXSDValidator() {

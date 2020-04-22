@@ -34,6 +34,7 @@ import java.io.DataInputStream;
 import java.io.StringReader;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
@@ -68,7 +69,7 @@ public class XSLTTransformer {
      *
      * @param xsltFileName The xslt file to use with the transformation
      */
-    public XSLTTransformer(ArrayList<String> xsltFileNames) {
+    public XSLTTransformer(Collection<String> xsltFileNames) {
         processor = new net.sf.saxon.s9api.Processor(false);
         schemaManager = processor.getSchemaManager();
         transformers = new ArrayList<Transformer>();
@@ -179,14 +180,6 @@ public class XSLTTransformer {
         DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
         docBuilderFactory.setIgnoringElementContentWhitespace(true);
         DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
-        System.out.println("[XX]");
-        System.out.println("[XX]");
-        System.out.println("[XX]");
-        System.out.println("[XX] PARSE RESULT DOC:");
-        System.out.println(xmlString);
-        System.out.println("[XX]");
-        System.out.println("[XX]");
-        System.out.println("[XX]");
         Document document = docBuilder.parse(new InputSource(new StringReader(xmlString)));
         return document;
     }
