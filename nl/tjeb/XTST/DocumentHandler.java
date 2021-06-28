@@ -44,7 +44,7 @@ public class DocumentHandler {
     // By default, check every 5 seconds
     long checkEveryMilliseconds = 5000;
     LinkedHashMap<String, Long> XSDFiles;
-    Validator XSDValidator;
+    Validator XSDValidator = null;
     private String _name;
     private String _description;
 
@@ -165,7 +165,7 @@ public class DocumentHandler {
     private void loadXSD() {
         try {
             System.out.println("Loading XSD file, if any");
-            if (XSDFiles == null) {
+            if (XSDFiles == null || XSDFiles.size() == 0) {
                 XSDValidator = null;
                 System.out.println("No XSD files set");
             } else {

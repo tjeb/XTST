@@ -225,7 +225,7 @@ public class Server extends Thread
             try {
                 StringReader reader = new StringReader(xml);
                 StreamSource source = new StreamSource(reader);
-                handler.getXSDValidator().validate(source);
+                //handler.getXSDValidator().validate(source);
                 result = handler.getTransformer().transformString(xml);
                 status = "Success: transformation succeeded\n";
             } catch (SAXException saxe) {

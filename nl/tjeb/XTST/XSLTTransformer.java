@@ -212,7 +212,6 @@ public class XSLTTransformer {
             } else {
                 targetRoot.appendChild(copy);
             }
-            System.out.println("YOYO NO HAVE NODE: " + cur.getNodeName());
             cur = cur.getNextSibling();
         }
     }
