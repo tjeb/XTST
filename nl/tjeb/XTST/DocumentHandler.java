@@ -153,9 +153,7 @@ public class DocumentHandler {
     private StreamSource filenameToSource(String filename) throws FileNotFoundException {
         File f = new File(filename);
         InputStream fstream = new FileInputStream(f);
-        System.out.println("[XX] LOADING STREAMSOURCE AT " + filename);
         StreamSource sstream = new StreamSource(fstream, f.getAbsolutePath());
-        System.out.println("[XX] LOADED STREAMSOURCE AT " + filename);
         return sstream;
     }
 
@@ -198,7 +196,7 @@ public class DocumentHandler {
      * TODO: CURRENTLY DISABLED
      */
     public void checkModified() {
-        System.out.println("[XX] checkModified called");
+        //System.out.println("[XX] checkModified called");
         // Don't check *every* time; check at most once every 5 seconds
         long now = System.currentTimeMillis();
         if (now > modifyChecked + checkEveryMilliseconds) {
@@ -224,6 +222,10 @@ public class DocumentHandler {
 
     public boolean hasXSDValidator() {
         return (XSDValidator != null);
+    }
+    
+    public boolean hasTransformer() {
+        return (transformer != null);
     }
 
     public Validator getXSDValidator() {

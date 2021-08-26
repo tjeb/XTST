@@ -217,26 +217,32 @@ public class Server extends Thread
         String status = null;
         String result = null;
 
-        System.out.println("[XX] validateDocument called");
+        //System.out.println("[XX] validateDocument called");
         handler.checkModified();
         String xml = readDataString(in);
         // Validate against schema
         if (handler != null && handler.hasXSDValidator()) {
+            System.out.println("validating XSD");
             try {
                 StringReader reader = new StringReader(xml);
                 StreamSource source = new StreamSource(reader);
-                //handler.getXSDValidator().validate(source);
-                result = handler.getTransformer().transformString(xml);
-                status = "Success: transformation succeeded\n";
+                handler.getXSDValidator().validate(source);
+                //result = handler.getTransformer().transformString(xml);
+                // set status only if we have no xslt tranform
+                if (!handler.hasTransformer()) {
+                    status = "Success: transformation succeeded\n";
+                }
+                //System.out.println("[XX] xsd validation complete");
             } catch (SAXException saxe) {
-                status = "Error: invalid " + saxe.toString();
+                status = "Error: XX invalid " + saxe.toString();
                 System.out.println(status);
             } catch (Exception exc) {
                 status = "Error processing document: " + exc.toString();
                 System.out.println(status);
                 exc.printStackTrace();
             }
-        } else if (handler != null) {
+        }
+        if (status == null && handler != null) {
             // Transform XSLT
             try {
                 result = handler.getTransformer().transformString(xml);
@@ -263,7 +269,7 @@ public class Server extends Thread
         while(true) {
             try {
                 Socket server = serverSocket.accept();
-                System.err.println("[XX] accept");
+                //System.err.println("[XX] accept");
 
                 DataInputStream in =
                       new DataInputStream(server.getInputStream());
