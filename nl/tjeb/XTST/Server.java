@@ -234,7 +234,7 @@ public class Server extends Thread
                 }
                 //System.out.println("[XX] xsd validation complete");
             } catch (SAXException saxe) {
-                status = "Error: XX invalid " + saxe.toString();
+                status = "Error: invalid " + saxe.toString();
                 System.out.println(status);
             } catch (Exception exc) {
                 status = "Error processing document: " + exc.toString();
